@@ -172,7 +172,8 @@ for t in threads.keys():
 repo = Repo(".")
 git = repo.git
 
-git.pull("--all")
+repo.heads.master.checkout()
+git.pull("--all", "--prune")
 
 for t in threads.keys():
     lastmid = threads[t][-1][1:-1]
