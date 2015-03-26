@@ -168,6 +168,8 @@ for t in threads.keys():
 repo = Repo(".")
 git = repo.git
 
+git.pull("--all")
+
 for t in threads.keys():
     lastmid = threads[t][-1][1:-1]
     mboxfile = '%s/%s' % (MAIL2GIT_VARDIR, lastmid)
@@ -177,6 +179,7 @@ for t in threads.keys():
     # check if branch already exists
     if lastmid in repo.heads or "refs/remotes/origin/%s" % lastmid in repo.refs:
         #repo.delete_head(lastmid, "-D")
+        print "Branch %s does already exist" % lastmid
         continue
 
     repo.heads.master.checkout()
