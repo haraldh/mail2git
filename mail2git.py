@@ -1,7 +1,7 @@
 import mailbox
 import sys
 from sets import Set
-from operator import itemgetter, attrgetter, methodcaller
+from operator import itemgetter
 import time
 import email.utils
 import re
