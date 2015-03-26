@@ -9,9 +9,13 @@ import os
 from git import Repo
 import atexit
 import shutil
+import smtplib
+from email.mime.text import MIMEText
 
-mailbox_file = sys.argv[1]
-github_base_url = sys.argv[2]
+from mail2gitconfig import *
+
+if email_to:
+    smtp = smtplib.SMTP('localhost')
 
 MAIL2GIT_VARDIR = "/var/tmp/mail2git-%d" % os.getpid()
 
@@ -191,7 +195,16 @@ for t in threads.keys():
         #    raise Exception("test")
         git.am(mboxfile, "--scissors")
         print "[OK]     %s" % lastmid
-        print "%s/%s" % (github_base_url, lastmid)
+
+        if email_to:
+            try:
+                msg = MIMEText(email_message + "%s/%s" % (github_base_url, lastmid))
+                msg['From'] = email_from
+                msg['To' ] = email_to
+                smtp.sendmail(email_from, [email_to], msg.as_string())
+            except:
+                print "Sending Email failed"
+
     except:
         print "[FAILED] %s" % lastmid
         try:
@@ -201,6 +214,8 @@ for t in threads.keys():
         repo.heads.master.checkout()
         repo.delete_head(lastmid, "-D")
         continue
+
+smtp.quit()
 
 repo.heads.master.checkout()
 git.push("--all")
