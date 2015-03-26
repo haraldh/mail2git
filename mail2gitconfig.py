@@ -1,5 +1,5 @@
 mailbox_file = '/home/harald/git/dracut-mailing/dracut-mailing'
-github_base_url = 'https://github.com/haraldh/dracut/compare/master...dracut-mailing-devs:'
-email_from = 'GitHub Import Bot <github@surfsite.org>'
+email_from = 'Dracut GitHub Import Bot <github@surfsite.org>'
 email_to = 'Harald Hoyer <harald@hoyer.xyz>'
-email_message = 'Patchset imported to github.\nPull request:\n'
+email_subject = '[Dracut GitHub] Patchset imported to github'
+email_message = 'Patchset imported to github.\nPull request:\n<https://github.com/haraldh/dracut/compare/master...dracut-mailing-devs:%s>'

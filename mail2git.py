@@ -196,16 +196,6 @@ for t in threads.keys():
         #    raise Exception("test")
         git.am(mboxfile, "--scissors")
         print "[OK]     %s" % lastmid
-
-        if email_to:
-            try:
-                msg = MIMEText(email_message + "%s/%s" % (github_base_url, lastmid))
-                msg['From'] = email_from
-                msg['To' ] = email_to
-                smtp.sendmail(email_from, [email_to], msg.as_string())
-            except:
-                print "Sending Email failed"
-
     except:
         print "[FAILED] %s" % lastmid
         try:
@@ -215,6 +205,17 @@ for t in threads.keys():
         repo.heads.master.checkout()
         repo.delete_head(lastmid, "-D")
         continue
+    else:
+        if email_to:
+            msg = MIMEText(email_message % lastmid, _charset="UTF-8")
+            msg.add_header('In-Reply-To', '<' + lastmid + '>')
+            msg['From'] = email_from
+            msg['To' ] = email_to
+            msg['Subject'] = email_subject
+            msg['Date'] = email.utils.formatdate()
+            msg['Message-ID'] = email.utils.make_msgid('githubbot')
+            smtp.sendmail(email_from, [email_to], msg.as_string())
+
 
 smtp.quit()
 
