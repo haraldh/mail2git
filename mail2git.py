@@ -7,10 +7,16 @@ import email.utils
 import re
 import os
 from git import Repo
+import atexit
+import shutil
 
-MAIL2GIT_VARDIR = "/var/tmp/mail2git"
+mailbox_file = sys.argv[1]
+github_base_url = sys.argv[2]
+
+MAIL2GIT_VARDIR = "/var/tmp/mail2git-%d" % os.getpid()
 
 mid = {}
+kid = {}
 threads = {}
 patch_pattern = re.compile(r'[PATCH.*[^\]]*\s*\d+/(\d+)\s*\]')
 diff_pattern = re.compile(r'^index.*\n---.*\n\+\+\+.*\n@@ .*', re.MULTILINE)
@@ -48,11 +54,34 @@ def check_complete(thread):
 
     return ret
 
-for message in mailbox.mbox(sys.argv[1]):
+def cleanup_maildir():
+    shutil.rmtree(MAIL2GIT_VARDIR, ignore_errors=True)
+
+atexit.register(cleanup_maildir)
+
+inbox = mailbox.mbox(mailbox_file)
+
+def inbox_unlock():
+    global inbox
+    inbox.flush()
+    inbox.unlock()
+
+atexit.register(inbox_unlock)
+inbox.lock()
+
+for key in inbox.iterkeys():
+    try:
+        message = inbox[key]
+    except email.errors.MessageParseError:
+        inbox.discard(key)
+        continue
+
     i = message['Message-ID']
     mid[i] = message
+    kid[i] = key
 
     if message['subject'].find("[PATCH") == -1:
+        inbox.discard(key)
         continue
 
     # search also with MIME decode
@@ -62,9 +91,11 @@ for message in mailbox.mbox(sys.argv[1]):
                 if diff_pattern.search(m.get_payload(decode=True)):
                     break
             else:
+                inbox.discard(key)
                 continue
         else:
             if not diff_pattern.search(message.get_payload(decode=True)):
+                inbox.discard(key)
                 continue
 
     s = message['Subject'].replace('\n', ' ').replace('\r', '')
@@ -78,7 +109,6 @@ for message in mailbox.mbox(sys.argv[1]):
         continue
 
     if patch_pattern.match(s) and not re.search("\[PATCH.*[^\]]*\s*1/(\d+)\s*\]", s):
-        print "MEH!!! : " + str(message)
         continue
 
     if not threads.has_key(i):
@@ -114,9 +144,6 @@ for t in threads.keys():
 if not os.path.isdir(MAIL2GIT_VARDIR):
     os.mkdir(MAIL2GIT_VARDIR)
 
-repo = Repo(".")
-git = repo.git
-
 # print threads
 for t in threads.keys():
     lastmid = threads[t][-1][1:-1]
@@ -128,12 +155,18 @@ for t in threads.keys():
         for b in threads[t]:
             message = mid[b]
             box.add(message)
-            print message['subject']
+            #print message['subject']
 
         box.flush()
         box.unlock()
+        box.close()
 
-#exit(0)
+    for b in threads[t]:
+        key = kid[b]
+        inbox.discard(key)
+
+repo = Repo(".")
+git = repo.git
 
 for t in threads.keys():
     lastmid = threads[t][-1][1:-1]
@@ -141,7 +174,8 @@ for t in threads.keys():
     if not os.path.isfile(mboxfile):
         continue
 
-    if lastmid in repo.heads:
+    # check if branch already exists
+    if lastmid in repo.heads or "refs/remotes/origin/%s" % lastmid in repo.refs:
         #repo.delete_head(lastmid, "-D")
         continue
 
@@ -150,15 +184,29 @@ for t in threads.keys():
     new_branch.checkout()
 
     try:
-        if os.system("git am --scissors %s" % mboxfile) != 0:
-            raise Exception("test")
-        #git.am(mboxfile, "--scissors")
+        #if os.system("git am %s" % mboxfile) != 0:
+        #    raise Exception("test")
+        git.am(mboxfile, "--scissors")
         print "[OK]     %s" % lastmid
+        print "%s/%s" % (github_base_url, lastmid)
     except:
         print "[FAILED] %s" % lastmid
-        git.am("--abort")
+        try:
+            git.am("--abort")
+        except:
+            pass
         repo.heads.master.checkout()
         repo.delete_head(lastmid, "-D")
         continue
 
 repo.heads.master.checkout()
+git.push("--all")
+
+# Now remove all messages older than a day
+
+for key in inbox.iterkeys():
+    message = inbox[key]
+    mtime = email.utils.mktime_tz(email.utils.parsedate_tz(message['date']))
+    ltime = time.time()
+    if (ltime - mtime) > 86400:
+        inbox.discard(key)
