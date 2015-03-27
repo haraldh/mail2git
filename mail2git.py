@@ -209,6 +209,7 @@ for t in threads.keys():
         if email_to:
             msg = MIMEText(email_message % lastmid.replace("@", "%40"))
             msg.add_header('In-Reply-To', '<' + lastmid + '>')
+            msg.add_header('References', '<' + lastmid + '>')
             msg['From'] = email_from
             msg['To' ] = email_to
             msg['Subject'] = email_subject
