@@ -1,7 +1,6 @@
 mailbox_file = '/home/harald/git/dracut-mailing/dracut-mailing'
 email_from = 'Dracut GitHub Import Bot <github@example.com>'
 email_to = 'Developer <dev@example.com>'
-email_subject = '[GitHub] Patchset imported to github'
 email_message = '''Patchset imported to github.
 Pull request:
 <https://github.com/<path_to_master_repo>/compare/master...<pull_repo>:%s>

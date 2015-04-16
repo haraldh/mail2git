@@ -212,7 +212,7 @@ for t in threads.keys():
             msg.add_header('References', '<' + lastmid + '>')
             msg['From'] = email_from
             msg['To' ] = email_to
-            msg['Subject'] = email_subject
+            msg['Subject'] = "Re: " + mid[lastmid]['Subject']
             msg['Date'] = email.utils.formatdate()
             msg['Message-ID'] = email.utils.make_msgid('githubbot')
             smtp.sendmail(email_from, [email_to], msg.as_string())
