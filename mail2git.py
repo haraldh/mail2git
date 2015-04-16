@@ -177,6 +177,7 @@ git.pull("--all", "--prune")
 
 for t in threads.keys():
     lastmid = threads[t][-1][1:-1]
+    lastsubject = mid[threads[t][-1]]['Subject']
     mboxfile = '%s/%s' % (MAIL2GIT_VARDIR, lastmid)
     if not os.path.isfile(mboxfile):
         continue
@@ -212,7 +213,7 @@ for t in threads.keys():
             msg.add_header('References', '<' + lastmid + '>')
             msg['From'] = email_from
             msg['To' ] = email_to
-            msg['Subject'] = "Re: " + mid[lastmid]['Subject']
+            msg['Subject'] = "Re: " + lastsubject
             msg['Date'] = email.utils.formatdate()
             msg['Message-ID'] = email.utils.make_msgid('githubbot')
             smtp.sendmail(email_from, [email_to], msg.as_string())
